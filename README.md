@@ -82,4 +82,4 @@ cat /var/lib/docker/volumes/mx-rosetta-monitor_mesh-data-0/_data/results.json  #
 - `mesh-cli` needs `ulimit -n 10000` (compose sets `ulimits.nofile`). See mesh-cli README troubleshooting.
 - Historical lookup requires archived observer DB; without it set `historical_balance_disabled=true` (much less efficient reconciliation) — not recommended for mainnet watch.
 - `Dockerfile.mesh-cli` builds `coinbase/mesh-cli v0.10.x` (`master`). Pin `MESH_CLI_REPO`/`MESH_CLI_REF` in `.env` to use your fork.
-- `Dockerfile.rosetta` builds `multiversx/mx-chain-rosetta` at `ROSETTA_REF`. Override `ROSETTA_IMAGE` to use prebuilt.
+- `Dockerfile.rosetta` builds `multiversx/mx-chain-rosetta` at `ROSETTA_REF`.
