@@ -1,4 +1,3 @@
-name: mx-rosetta-monitor
 
 # Chain per shard: adapter-N (gateway -> observer API) -> rosetta-N -> mesh-N.
 # Mirrors systemtests/check_with_mesh_cli.py:
