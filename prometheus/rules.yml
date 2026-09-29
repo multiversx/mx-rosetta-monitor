@@ -1,0 +1,36 @@
+groups:
+  - name: mx-mesh
+    interval: 30s
+    rules:
+      - alert: MeshReconciliationFailure
+        expr: mx_mesh_failed_reconciliations > 0
+        for: 2m
+        labels: { severity: critical }
+        annotations:
+          summary: "mesh-cli reconciliation failure on {{ $labels.shard }}"
+          description: "failed={{ $value }}. Check mesh-{{ $labels.shard }} logs and /data/results.json."
+      - alert: MeshDown
+        expr: mx_mesh_up == 0
+        for: 2m
+        labels: { severity: critical }
+        annotations:
+          summary: "mesh-cli status down on {{ $labels.shard }}"
+      - alert: MeshTipLag
+        expr: mx_mesh_tip_lag > 200
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: "mesh-cli tip lag high on {{ $labels.shard }} ({{ $value }} blocks)"
+      - alert: MeshHighMemory
+        expr: mx_mesh_container_memory_mb{name=~".*mesh-.*"} > 3000
+        for: 10m
+        labels: { severity: warning }
+        annotations:
+          summary: "mesh-cli high memory on {{ $labels.name }} ({{ $value }} MB)"
+  - name: mx-mesh-mb
+    interval: 30s
+    rules:
+      - record: mx_mesh_volume_mb
+        expr: mx_mesh_volume_bytes / 1024 / 1024
+      - record: mx_mesh_container_memory_mb
+        expr: sum by (name) (container_memory_working_set_bytes) / 1024 / 1024

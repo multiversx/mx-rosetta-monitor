@@ -1,0 +1,7 @@
+FROM python:3.12-slim
+WORKDIR /app
+COPY monitor/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY monitor/monitor.py .
+EXPOSE 8080
+CMD ["python", "monitor.py"]

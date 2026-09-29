@@ -1,0 +1,18 @@
+# Builds mesh-cli (coinbase/mesh-cli lineage, v0.10.x, branch master).
+# Override with your fork, e.g. MESH_CLI_REPO=https://github.com/miiu/mesh-cli.git
+ARG MESH_CLI_REPO=https://github.com/coinbase/mesh-cli.git
+ARG MESH_CLI_REF=master
+FROM golang:1.23-bookworm AS build
+ARG MESH_CLI_REPO
+ARG MESH_CLI_REF
+RUN git clone --branch ${MESH_CLI_REF} --depth 1 ${MESH_CLI_REPO} /src \
+ && cd /src && go build -o /out/mesh-cli .
+
+FROM debian:bookworm-slim
+RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates jq \
+ && rm -rf /var/lib/apt/lists/*
+COPY --from=build /out/mesh-cli /usr/local/bin/mesh-cli
+COPY mesh-entrypoint.sh /usr/local/bin/mesh-entrypoint.sh
+RUN chmod +x /usr/local/bin/mesh-entrypoint.sh
+EXPOSE 9091
+ENTRYPOINT ["/usr/local/bin/mesh-entrypoint.sh"]

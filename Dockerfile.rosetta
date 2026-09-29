@@ -1,0 +1,16 @@
+# Builds mx-chain-rosetta. Override ROSETTA_REF via compose .env.
+# Default branch is main (there is no master on mx-chain-rosetta).
+ARG ROSETTA_REF=main
+FROM golang:1.26-bookworm AS build
+ARG ROSETTA_REF
+RUN git clone --branch ${ROSETTA_REF} --depth 1 https://github.com/multiversx/mx-chain-rosetta.git /src \
+ && cd /src/cmd/rosetta && go build -o /out/rosetta .
+
+FROM debian:bookworm-slim
+RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates \
+ && rm -rf /var/lib/apt/lists/*
+COPY --from=build /out/rosetta /usr/local/bin/rosetta
+COPY rosetta-entrypoint.sh /usr/local/bin/rosetta-entrypoint.sh
+RUN chmod +x /usr/local/bin/rosetta-entrypoint.sh
+EXPOSE 8091
+ENTRYPOINT ["/usr/local/bin/rosetta-entrypoint.sh"]

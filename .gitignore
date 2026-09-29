@@ -1,0 +1,4 @@
+.env
+mesh-data-*/
+*.log
+__pycache__/

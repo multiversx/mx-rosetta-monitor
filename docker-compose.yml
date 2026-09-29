@@ -1,0 +1,301 @@
+name: mx-rosetta-monitor
+
+# Chain per shard: adapter-N (gateway -> observer API) -> rosetta-N -> mesh-N.
+# Mirrors systemtests/check_with_mesh_cli.py:
+#   adapter: proxyToObserverAdapter --proxy=$PROXY_URL --shard=N --sleep=$ADAPTER_DELAY_MS --port=1000X
+#   rosetta: --observer-http-url=http://adapter-N:1000X --observer-actual-shard=N ...
+
+services:
+  adapter-0:
+    build:
+      context: .
+      dockerfile: Dockerfile.adapter
+      args:
+        ROSETTA_REF: ${ROSETTA_REF:-main}
+    image: mx-rosetta-adapter:${ROSETTA_REF:-main}
+    command: ["--proxy=${PROXY_URL:-https://gateway.multiversx.com}", "--shard=0", "--sleep=${ADAPTER_DELAY_MS:-0}", "--port=10001"]
+    ports: ["${ADAPTER_PORT_0:-10001}:10001"]
+    restart: unless-stopped
+    logging: { driver: json-file, options: { max-size: 20m, max-file: "3" } }
+
+  adapter-1:
+    build:
+      context: .
+      dockerfile: Dockerfile.adapter
+      args:
+        ROSETTA_REF: ${ROSETTA_REF:-main}
+    image: mx-rosetta-adapter:${ROSETTA_REF:-main}
+    command: ["--proxy=${PROXY_URL:-https://gateway.multiversx.com}", "--shard=1", "--sleep=${ADAPTER_DELAY_MS:-0}", "--port=10002"]
+    ports: ["${ADAPTER_PORT_1:-10002}:10002"]
+    restart: unless-stopped
+    logging: { driver: json-file, options: { max-size: 20m, max-file: "3" } }
+
+  adapter-2:
+    build:
+      context: .
+      dockerfile: Dockerfile.adapter
+      args:
+        ROSETTA_REF: ${ROSETTA_REF:-main}
+    image: mx-rosetta-adapter:${ROSETTA_REF:-main}
+    command: ["--proxy=${PROXY_URL:-https://gateway.multiversx.com}", "--shard=2", "--sleep=${ADAPTER_DELAY_MS:-0}", "--port=10003"]
+    ports: ["${ADAPTER_PORT_2:-10003}:10003"]
+    restart: unless-stopped
+    logging: { driver: json-file, options: { max-size: 20m, max-file: "3" } }
+
+  adapter-meta:
+    build:
+      context: .
+      dockerfile: Dockerfile.adapter
+      args:
+        ROSETTA_REF: ${ROSETTA_REF:-main}
+    image: mx-rosetta-adapter:${ROSETTA_REF:-main}
+    command: ["--proxy=${PROXY_URL:-https://gateway.multiversx.com}", "--shard=4294967295", "--sleep=${ADAPTER_DELAY_MS:-0}", "--port=10004"]
+    ports: ["${ADAPTER_PORT_META:-10004}:10004"]
+    restart: unless-stopped
+    logging: { driver: json-file, options: { max-size: 20m, max-file: "3" } }
+
+  rosetta-0:
+    build:
+      context: .
+      dockerfile: Dockerfile.rosetta
+      args:
+        ROSETTA_REF: ${ROSETTA_REF:-main}
+    image: mx-rosetta:${ROSETTA_REF:-main}
+    command: ["0"]
+    depends_on: [adapter-0]
+    ports: ["${ROSETTA_PORT_0:-7091}:8091"]
+    environment:
+      NETWORK_ID: ${NETWORK_ID:-1}
+      NETWORK_NAME: ${NETWORK_NAME:-mainnet}
+      NATIVE_CURRENCY: ${NATIVE_CURRENCY:-EGLD}
+      NUM_SHARDS: ${NUM_SHARDS:-3}
+      GENESIS_BLOCK: ${GENESIS_BLOCK:-cd229e4ad2753708e4bab01d7f249affe29441829524c9529e84d51b6d12f2a7}
+      OBSERVER_URL: http://adapter-0:10001
+      FIRST_HISTORICAL_EPOCH: ${FIRST_HISTORICAL_EPOCH}
+      NUM_HISTORICAL_EPOCHS: ${NUM_HISTORICAL_EPOCHS:-4}
+    volumes:
+      - ./config/mainnet-custom-currencies.json:/config/custom-currencies.json:ro
+    restart: unless-stopped
+    logging: { driver: json-file, options: { max-size: 50m, max-file: "5" } }
+
+  rosetta-1:
+    build:
+      context: .
+      dockerfile: Dockerfile.rosetta
+      args:
+        ROSETTA_REF: ${ROSETTA_REF:-main}
+    image: mx-rosetta:${ROSETTA_REF:-main}
+    command: ["1"]
+    depends_on: [adapter-1]
+    ports: ["${ROSETTA_PORT_1:-7092}:8091"]
+    environment:
+      NETWORK_ID: ${NETWORK_ID:-1}
+      NETWORK_NAME: ${NETWORK_NAME:-mainnet}
+      NATIVE_CURRENCY: ${NATIVE_CURRENCY:-EGLD}
+      NUM_SHARDS: ${NUM_SHARDS:-3}
+      GENESIS_BLOCK: ${GENESIS_BLOCK:-cd229e4ad2753708e4bab01d7f249affe29441829524c9529e84d51b6d12f2a7}
+      OBSERVER_URL: http://adapter-1:10002
+      FIRST_HISTORICAL_EPOCH: ${FIRST_HISTORICAL_EPOCH}
+      NUM_HISTORICAL_EPOCHS: ${NUM_HISTORICAL_EPOCHS:-4}
+    volumes:
+      - ./config/mainnet-custom-currencies.json:/config/custom-currencies.json:ro
+    restart: unless-stopped
+    logging: { driver: json-file, options: { max-size: 50m, max-file: "5" } }
+
+  rosetta-2:
+    build:
+      context: .
+      dockerfile: Dockerfile.rosetta
+      args:
+        ROSETTA_REF: ${ROSETTA_REF:-main}
+    image: mx-rosetta:${ROSETTA_REF:-main}
+    command: ["2"]
+    depends_on: [adapter-2]
+    ports: ["${ROSETTA_PORT_2:-7093}:8091"]
+    environment:
+      NETWORK_ID: ${NETWORK_ID:-1}
+      NETWORK_NAME: ${NETWORK_NAME:-mainnet}
+      NATIVE_CURRENCY: ${NATIVE_CURRENCY:-EGLD}
+      NUM_SHARDS: ${NUM_SHARDS:-3}
+      GENESIS_BLOCK: ${GENESIS_BLOCK:-cd229e4ad2753708e4bab01d7f249affe29441829524c9529e84d51b6d12f2a7}
+      OBSERVER_URL: http://adapter-2:10003
+      FIRST_HISTORICAL_EPOCH: ${FIRST_HISTORICAL_EPOCH}
+      NUM_HISTORICAL_EPOCHS: ${NUM_HISTORICAL_EPOCHS:-4}
+    volumes:
+      - ./config/mainnet-custom-currencies.json:/config/custom-currencies.json:ro
+    restart: unless-stopped
+    logging: { driver: json-file, options: { max-size: 50m, max-file: "5" } }
+
+  rosetta-meta:
+    build:
+      context: .
+      dockerfile: Dockerfile.rosetta
+      args:
+        ROSETTA_REF: ${ROSETTA_REF:-main}
+    image: mx-rosetta:${ROSETTA_REF:-main}
+    command: ["4294967295"]
+    depends_on: [adapter-meta]
+    ports: ["${ROSETTA_PORT_META:-7094}:8091"]
+    environment:
+      NETWORK_ID: ${NETWORK_ID:-1}
+      NETWORK_NAME: ${NETWORK_NAME:-mainnet}
+      NATIVE_CURRENCY: ${NATIVE_CURRENCY:-EGLD}
+      NUM_SHARDS: ${NUM_SHARDS:-3}
+      GENESIS_BLOCK: ${GENESIS_BLOCK:-cd229e4ad2753708e4bab01d7f249affe29441829524c9529e84d51b6d12f2a7}
+      OBSERVER_URL: http://adapter-meta:10004
+      FIRST_HISTORICAL_EPOCH: ${FIRST_HISTORICAL_EPOCH}
+      NUM_HISTORICAL_EPOCHS: ${NUM_HISTORICAL_EPOCHS:-4}
+    volumes:
+      - ./config/mainnet-custom-currencies.json:/config/custom-currencies.json:ro
+    restart: unless-stopped
+    logging: { driver: json-file, options: { max-size: 50m, max-file: "5" } }
+
+  mesh-0:
+    build:
+      context: .
+      dockerfile: Dockerfile.mesh-cli
+      args:
+        MESH_CLI_REPO: ${MESH_CLI_REPO:-https://github.com/coinbase/mesh-cli.git}
+        MESH_CLI_REF: ${MESH_CLI_REF:-master}
+    environment:
+      GOMEMLIMIT: ${MESH_GOMEMLIMIT:-2GiB}
+    depends_on: [rosetta-0, adapter-0]
+    command: ["rosetta-0:8091", "adapter-0:10001", "9091"]
+    ports: ["${MESH_STATUS_PORT_0:-9091}:9091"]
+    volumes:
+      - ./config/check-data.json:/config/check-data.json:ro
+      - mesh-data-0:/data
+    restart: unless-stopped
+    ulimits: { nofile: 10000 }
+    logging: { driver: json-file, options: { max-size: 100m, max-file: "5" } }
+
+  mesh-1:
+    build:
+      context: .
+      dockerfile: Dockerfile.mesh-cli
+      args:
+        MESH_CLI_REPO: ${MESH_CLI_REPO:-https://github.com/coinbase/mesh-cli.git}
+        MESH_CLI_REF: ${MESH_CLI_REF:-master}
+    environment:
+      GOMEMLIMIT: ${MESH_GOMEMLIMIT:-2GiB}
+    depends_on: [rosetta-1, adapter-1]
+    command: ["rosetta-1:8091", "adapter-1:10002", "9091"]
+    ports: ["${MESH_STATUS_PORT_1:-9092}:9091"]
+    volumes:
+      - ./config/check-data.json:/config/check-data.json:ro
+      - mesh-data-1:/data
+    restart: unless-stopped
+    ulimits: { nofile: 10000 }
+    logging: { driver: json-file, options: { max-size: 100m, max-file: "5" } }
+
+  mesh-2:
+    build:
+      context: .
+      dockerfile: Dockerfile.mesh-cli
+      args:
+        MESH_CLI_REPO: ${MESH_CLI_REPO:-https://github.com/coinbase/mesh-cli.git}
+        MESH_CLI_REF: ${MESH_CLI_REF:-master}
+    environment:
+      GOMEMLIMIT: ${MESH_GOMEMLIMIT:-2GiB}
+    depends_on: [rosetta-2, adapter-2]
+    command: ["rosetta-2:8091", "adapter-2:10003", "9091"]
+    ports: ["${MESH_STATUS_PORT_2:-9093}:9091"]
+    volumes:
+      - ./config/check-data.json:/config/check-data.json:ro
+      - mesh-data-2:/data
+    restart: unless-stopped
+    ulimits: { nofile: 10000 }
+    logging: { driver: json-file, options: { max-size: 100m, max-file: "5" } }
+
+  mesh-meta:
+    build:
+      context: .
+      dockerfile: Dockerfile.mesh-cli
+      args:
+        MESH_CLI_REPO: ${MESH_CLI_REPO:-https://github.com/coinbase/mesh-cli.git}
+        MESH_CLI_REF: ${MESH_CLI_REF:-master}
+    environment:
+      GOMEMLIMIT: ${MESH_GOMEMLIMIT:-2GiB}
+    depends_on: [rosetta-meta, adapter-meta]
+    command: ["rosetta-meta:8091", "adapter-meta:10004", "9091"]
+    ports: ["${MESH_STATUS_PORT_META:-9094}:9091"]
+    volumes:
+      - ./config/check-data.json:/config/check-data.json:ro
+      - mesh-data-meta:/data
+    restart: unless-stopped
+    ulimits: { nofile: 10000 }
+    logging: { driver: json-file, options: { max-size: 100m, max-file: "5" } }
+
+  monitor:
+    build:
+      context: .
+      dockerfile: Dockerfile.monitor
+    depends_on: [mesh-0, mesh-1, mesh-2, mesh-meta]
+    ports: ["${MONITOR_PORT:-8080}:8080"]
+    environment:
+      MESH_TARGETS: "shard0=http://mesh-0:9091,shard1=http://mesh-1:9091,shard2=http://mesh-2:9091,meta=http://mesh-meta:9091"
+      VOLUME_PATHS: "shard0=/volumes/shard0,shard1=/volumes/shard1,shard2=/volumes/shard2,meta=/volumes/meta"
+      POLL_INTERVAL_SEC: ${MONITOR_POLL_INTERVAL_SEC:-30}
+      SLACK_WEBHOOK_URL: ${SLACK_WEBHOOK_URL:-}
+      TIP_LAG_WARN: "50"
+      TIP_LAG_CRIT: "200"
+    volumes:
+      - mesh-data-0:/volumes/shard0:ro
+      - mesh-data-1:/volumes/shard1:ro
+      - mesh-data-2:/volumes/shard2:ro
+      - mesh-data-meta:/volumes/meta:ro
+    restart: unless-stopped
+
+  cadvisor:
+    image: ghcr.io/google/cadvisor:${CADVISOR_VERSION:-v0.60.6}
+    ports: ["${CADVISOR_PORT:-8082}:8080"]
+    volumes:
+      - /:/rootfs:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /run/containerd:/run/containerd
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
+    privileged: true
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:v2.53.0
+    ports: ["${PROM_PORT:-9090}:9090"]
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/rules.yml:/etc/prometheus/rules.yml:ro
+      - prometheus-data:/prometheus
+    command: ["--config.file=/etc/prometheus/prometheus.yml", "--storage.tsdb.path=/prometheus"]
+    depends_on: [monitor]
+    restart: unless-stopped
+
+  alertmanager:
+    image: prom/alertmanager:v0.27.0
+    ports: ["${ALERTMANAGER_PORT:-9093}:9093"]
+    volumes:
+      - ./alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+    command: ["--config.file=/etc/alertmanager/alertmanager.yml"]
+    restart: unless-stopped
+    profiles: ["alerting"]
+
+  grafana:
+    image: grafana/grafana:11.2.0
+    ports: ["${GRAFANA_PORT:-3000}:3000"]
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/etc/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    depends_on: [prometheus]
+    restart: unless-stopped
+
+volumes:
+  mesh-data-0:
+  mesh-data-1:
+  mesh-data-2:
+  mesh-data-meta:
+  prometheus-data:
+  grafana-data:

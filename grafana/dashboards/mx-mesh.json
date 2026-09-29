@@ -1,0 +1,101 @@
+{
+  "uid": "mx-mesh",
+  "title": "MX Rosetta Monitor",
+  "tags": ["mesh", "rosetta"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "panels": [
+    {
+      "id": 1,
+      "title": "Synced vs tip block",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        { "refId": "A", "expr": "mx_mesh_synced_block", "legendFormat": "synced {{shard}}" },
+        { "refId": "B", "expr": "mx_mesh_tip_block", "legendFormat": "tip {{shard}}" }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Tip lag (blocks)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [
+        { "refId": "A", "expr": "mx_mesh_tip_lag", "legendFormat": "{{shard}}" }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Failed reconciliations",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "targets": [
+        { "refId": "A", "expr": "mx_mesh_failed_reconciliations", "legendFormat": "{{shard}}" }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Reconciliation coverage",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "targets": [
+        { "refId": "A", "expr": "mx_mesh_coverage", "legendFormat": "{{shard}}" }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Reconciler queue",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "targets": [
+        { "refId": "A", "expr": "mx_mesh_reconciler_queue", "legendFormat": "{{shard}}" }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "Mesh up",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+      "targets": [
+        { "refId": "A", "expr": "mx_mesh_up", "legendFormat": "{{shard}}" }
+      ]
+    },
+    {
+      "id": 7,
+      "title": "Container memory (MB)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 24 },
+      "targets": [
+        { "refId": "A", "expr": "sum by (name) (container_memory_working_set_bytes{name=~\"mx-rosetta-monitor.+\"}) / 1024 / 1024", "legendFormat": "{{name}}" }
+      ]
+    },
+    {
+      "id": 8,
+      "title": "Container CPU (cores)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 24 },
+      "targets": [
+        { "refId": "A", "expr": "sum by (name) (rate(container_cpu_usage_seconds_total{name=~\"mx-rosetta-monitor.+\"}[5m]))", "legendFormat": "{{name}}" }
+      ]
+    },
+    {
+      "id": 9,
+      "title": "Mesh data volume size (MB)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 32 },
+      "targets": [
+        { "refId": "A", "expr": "mx_mesh_volume_bytes / 1024 / 1024", "legendFormat": "{{shard}}" }
+      ]
+    }
+  ]
+}
