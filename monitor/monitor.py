@@ -14,6 +14,7 @@ Metrics (port 8080):
   mx_mesh_tip_block{shard}
   mx_mesh_volume_bytes{shard}
 """
+import json
 import logging
 import os
 import subprocess
@@ -67,10 +68,31 @@ def dir_size_bytes(path: str) -> int | None:
     return None
 
 last_failed: dict[str, int] = {}
+last_up: dict[str, bool] = {}
+
+
+def results_error(shard: str, lines: int = 3, limit: int = 500) -> str | None:
+    """First lines of mesh-cli /data/results.json error (volume is mounted ro)."""
+    path = VOLUME_PATHS.get(shard, "")
+    if not path:
+        return None
+    try:
+        with open(f"{path}/results.json", encoding="utf-8", errors="replace") as f:
+            err = (json.load(f).get("error") or "").strip().splitlines()
+        return "\n".join(err[:lines])[:limit] or None
+    except Exception:  # noqa: BLE001 - missing/corrupt file means no detail
+        return None
+
+
+STARTED = time.time()
+GRACE = int(os.environ.get("STARTUP_GRACE_SEC", "60"))
 
 
 def notify(text: str) -> None:
     log.warning(text)
+    # ponytail: skip posts right after (re)start, state is empty and everything looks down; logs still show it
+    if time.time() - STARTED < GRACE:
+        return
     if not SLACK:
         return
     try:
@@ -96,6 +118,9 @@ def check_once() -> None:
             queue = int(prog.get("reconciler_queue_size", 0) or 0)
 
             g_up.labels(shard).set(1)
+            if last_up.get(shard, True) is False:
+                notify(f"MESH RECOVERED - shard: {shard}")
+            last_up[shard] = True
             g_failed.labels(shard).set(failed)
             g_skipped.labels(shard).set(skipped)
             g_coverage.labels(shard).set(coverage)
@@ -106,7 +131,10 @@ def check_once() -> None:
 
             prev = last_failed.get(shard, 0)
             if failed > 0 and failed != prev:
-                notify(f"RECONCILIATION FAILURE shard={shard} failed={failed} skipped={skipped} coverage={coverage:.4f} lag={lag} queue={queue} url={url}")
+                detail = results_error(shard)
+                msg = (f"RECONCILIATION FAILURE - shard: {shard}\n"
+                       f"failed: {failed}, skipped: {skipped}, coverage: {coverage:.4f}, lag: {lag}, queue: {queue}")
+                notify(msg + (f"\nresults:\n{detail}" if detail else ""))
             last_failed[shard] = failed
 
             if lag >= TIP_LAG_CRIT:
@@ -115,8 +143,14 @@ def check_once() -> None:
                 log.info("tip lag warn shard=%s lag=%d", shard, lag)
             else:
                 log.info("ok shard=%s failed=%d coverage=%.4f lag=%d", shard, failed, coverage, lag)
-        except Exception as e:  # noqa: BLE001 - keep polling other shards
+        except Exception as e:
             g_up.labels(shard).set(0)
+            if last_up.get(shard, True):
+                detail = results_error(shard)
+                msg = (f"MESH DOWN - shard: {shard}\n"
+                       f"err: {e}")
+                notify(msg + (f"\nresults:\n{detail}" if detail else ""))
+            last_up[shard] = False
             log.error("fetch failed shard=%s url=%s err=%s", shard, url, e)
 
     for shard, path in VOLUME_PATHS.items():
