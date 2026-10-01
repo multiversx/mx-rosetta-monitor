@@ -8,7 +8,7 @@ This repo does **not** reimplement validation. It wires together:
 - `rosetta` x4 (shard 0, 1, 2, metachain) — one instance per shard (single-shard perspective, see `mx-chain-rosetta/README.md`), each pointed at its adapter
 - `mesh-cli check:data` x4 — tip-follower, persistent `data-dir`, per-shard `:status_port`
 - `monitor` — polls each `mesh-*/:9091/` (`CheckDataStatus{stats,progress}`), exposes Prometheus metrics, logs + Slack on reconciliation failure
-- `prometheus` + `alertmanager` — scrape + alert on `failed_reconciliations > 0` / target down / tip lag
+- `prometheus` — scrapes `monitor` + cAdvisor, backs Grafana (Slack via `monitor`)
 
 Upstream one-shot tooling (`mx-chain-rosetta/systemtests/check_with_mesh_cli.py`) deletes `data_dir` and exits on `reconciliation_coverage` — good for CI, wrong for 24/7. Here we keep state and run forever.
 
@@ -40,7 +40,7 @@ Compose maps:
 | 2 | localhost:10003 | localhost:7093 | localhost:9093 |
 | meta (4294967295) | localhost:10004 | localhost:7094 | localhost:9094 |
 
-Monitor metrics: `localhost:8081/metrics` (`MONITOR_PORT`). Prometheus: `localhost:9090`. Grafana: `localhost:3000` (admin/admin) with pre-provisioned **MX Mesh CLI** dashboard. Alertmanager: `localhost:9095`.
+Monitor metrics: `localhost:8081/metrics` (`MONITOR_PORT`). Prometheus: `localhost:9090`. Grafana: `localhost:3000` (admin/admin) with pre-provisioned **MX Mesh CLI** dashboard.
 
 ## How reconciliation monitoring works
 
@@ -57,7 +57,6 @@ Monitor metrics: `localhost:8081/metrics` (`MONITOR_PORT`). Prometheus: `localho
 - `mx_mesh_failed_reconciliations{shard}` — alert if `> 0` or increasing
 - `mx_mesh_skipped_reconciliations{shard}`, `mx_mesh_coverage{shard}`, `mx_mesh_tip_lag{shard}`
 - logs `RECONCILIATION FAILURE shard=X failed=N` + POSTs to Slack if `SLACK_WEBHOOK_URL` set
-- Prometheus rule `prometheus/rules.yml` fires `MeshReconciliationFailure`, `MeshDown`, `MeshTipLag`.
 
 `check-data.json` sets `"ignore_reconciliation_error": false` so `mesh-cli` exits non-zero on failure — compose `restart: unless-stopped` brings it back, and the monitor + `results_output_file` (`/data/results.json`) preserve the error for triage. Never delete `/var/lib/mesh-cli/*` volumes in prod (the python systemtest does `shutil.rmtree` — don't copy that).
 

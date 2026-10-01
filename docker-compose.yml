@@ -262,20 +262,10 @@ services:
     ports: ["${PROM_PORT:-9090}:9090"]
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - ./prometheus/rules.yml:/etc/prometheus/rules.yml:ro
       - prometheus-data:/prometheus
     command: ["--config.file=/etc/prometheus/prometheus.yml", "--storage.tsdb.path=/prometheus"]
     depends_on: [monitor]
     restart: unless-stopped
-
-  alertmanager:
-    image: prom/alertmanager:v0.27.0
-    ports: ["${ALERTMANAGER_PORT:-9095}:9093"]
-    volumes:
-      - ./alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
-    command: ["--config.file=/etc/alertmanager/alertmanager.yml"]
-    restart: unless-stopped
-    profiles: ["alerting"]
 
   grafana:
     image: grafana/grafana:11.2.0
