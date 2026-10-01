@@ -10,5 +10,61 @@
     {
         "symbol": "USDC-c76f1f",
         "decimals": 6
+    },
+    {
+        "symbol": "ZPAY-247875",
+        "decimals": 18
+    },
+    {
+        "symbol": "UTK-2f80e9",
+        "decimals": 18
+    },
+    {
+        "symbol": "HTM-f51d55",
+        "decimals": 18
+    },
+    {
+        "symbol": "FOXSY-5d5f3e",
+        "decimals": 18
+    },
+    {
+        "symbol": "WTAO-4f5363",
+        "decimals": 9
+    },
+    {
+        "symbol": "WBTC-5349b3",
+        "decimals": 8
+    },
+    {
+        "symbol": "XEGLD-e413ed",
+        "decimals": 18
+    },
+    {
+        "symbol": "WETH-b4ca29",
+        "decimals": 18
+    },
+    {
+        "symbol": "XOXNO-c1293a",
+        "decimals": 18
+    },
+    {
+        "symbol": "USH-111e09",
+        "decimals": 18
+    },
+    {
+        "symbol": "BOBER-9eb764",
+        "decimals": 18
+    },
+    {
+        "symbol": "USDT-f8c08c",
+        "decimals": 18
+    },
+    {
+        "symbol": "OFE-29eb54",
+        "decimals": 4
+    },
+    {
+        "symbol": "XMN-cfe145",
+        "decimals": 6
     }
 ]
