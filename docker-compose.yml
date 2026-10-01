@@ -244,6 +244,7 @@ services:
       - mesh-data-2:/volumes/shard2:ro
       - mesh-data-meta:/volumes/meta:ro
     restart: unless-stopped
+    logging: { driver: json-file, options: { max-size: 20m, max-file: "3" } }
 
   cadvisor:
     image: ghcr.io/google/cadvisor:${CADVISOR_VERSION:-v0.60.6}
@@ -256,6 +257,7 @@ services:
       - /var/lib/docker:/var/lib/docker:ro
     privileged: true
     restart: unless-stopped
+    logging: { driver: json-file, options: { max-size: 20m, max-file: "3" } }
 
   prometheus:
     image: prom/prometheus:v2.53.0
@@ -266,6 +268,27 @@ services:
     command: ["--config.file=/etc/prometheus/prometheus.yml", "--storage.tsdb.path=/prometheus"]
     depends_on: [monitor]
     restart: unless-stopped
+    logging: { driver: json-file, options: { max-size: 20m, max-file: "3" } }
+
+  loki:
+    image: grafana/loki:${LOKI_VERSION:-3.2.1}
+    ports: ["${LOKI_PORT:-3100}:3100"]
+    volumes:
+      - ./loki/loki.yml:/etc/loki/loki.yml:ro
+      - loki-data:/loki
+    command: ["-config.file=/etc/loki/loki.yml"]
+    restart: unless-stopped
+    logging: { driver: json-file, options: { max-size: 20m, max-file: "3" } }
+
+  promtail:
+    image: grafana/promtail:${LOKI_VERSION:-3.2.1}
+    volumes:
+      - ./promtail/promtail.yml:/etc/promtail/config.yml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    command: ["-config.file=/etc/promtail/config.yml"]
+    depends_on: [loki]
+    restart: unless-stopped
+    logging: { driver: json-file, options: { max-size: 20m, max-file: "3" } }
 
   grafana:
     image: grafana/grafana:11.2.0
@@ -278,8 +301,9 @@ services:
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
       - ./grafana/dashboards:/etc/grafana/dashboards:ro
       - grafana-data:/var/lib/grafana
-    depends_on: [prometheus]
+    depends_on: [prometheus, loki]
     restart: unless-stopped
+    logging: { driver: json-file, options: { max-size: 20m, max-file: "3" } }
 
 volumes:
   mesh-data-0:
@@ -287,4 +311,5 @@ volumes:
   mesh-data-2:
   mesh-data-meta:
   prometheus-data:
+  loki-data:
   grafana-data:
