@@ -38,6 +38,7 @@ POLL = int(os.environ.get("POLL_INTERVAL_SEC", "30"))
 SLACK = os.environ.get("SLACK_WEBHOOK_URL", "")
 TIP_LAG_WARN = int(os.environ.get("TIP_LAG_WARN", "50"))
 TIP_LAG_CRIT = int(os.environ.get("TIP_LAG_CRIT", "200"))
+DOWN_STRIKES = int(os.environ.get("MESH_DOWN_STRIKES", "3"))
 
 g_up = Gauge("mx_mesh_up", "1 if mesh-cli status fetch ok", ["shard"])
 g_failed = Gauge("mx_mesh_failed_reconciliations", "failed reconciliations", ["shard"])
@@ -69,6 +70,7 @@ def dir_size_bytes(path: str) -> int | None:
 
 last_failed: dict[str, int] = {}
 last_up: dict[str, bool] = {}
+down_strikes: dict[str, int] = {}
 
 
 def results_error(shard: str, lines: int = 3, limit: int = 500) -> str | None:
@@ -122,6 +124,7 @@ def check_once() -> None:
             if last_up.get(shard, True) is False:
                 notify(f":large_green_circle: MESH RECOVERED - shard: {shard}")
             last_up[shard] = True
+            down_strikes[shard] = 0
             g_failed.labels(shard).set(failed)
             g_skipped.labels(shard).set(skipped)
             g_coverage.labels(shard).set(coverage)
@@ -144,14 +147,17 @@ def check_once() -> None:
                 log.info("tip lag warn shard=%s lag=%d", shard, lag)
             else:
                 log.info("ok shard=%s failed=%d coverage=%.4f lag=%d", shard, failed, coverage, lag)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 - keep polling other shards
             g_up.labels(shard).set(0)
-            if last_up.get(shard, True):
+            # ponytail: N consecutive failures before paging; blips under ~90s stay silent
+            strikes = down_strikes.get(shard, 0) + 1
+            down_strikes[shard] = strikes
+            if last_up.get(shard, True) and strikes >= DOWN_STRIKES:
                 detail = results_error(shard)
                 msg = (f":red_circle: MESH DOWN - shard: {shard}\n"
                        f"err: {e}")
                 notify(msg + (f"\nresults:\n{detail}" if detail else ""))
-            last_up[shard] = False
+                last_up[shard] = False
             log.error("fetch failed shard=%s url=%s err=%s", shard, url, e)
 
     for shard, path in VOLUME_PATHS.items():
