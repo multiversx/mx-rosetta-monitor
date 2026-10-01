@@ -89,6 +89,7 @@ GRACE = int(os.environ.get("STARTUP_GRACE_SEC", "60"))
 
 
 def notify(text: str) -> None:
+    text = f"---------------------------\n{text}\n---------------------------"
     log.warning(text)
     # ponytail: skip posts right after (re)start, state is empty and everything looks down; logs still show it
     if time.time() - STARTED < GRACE:
@@ -119,7 +120,7 @@ def check_once() -> None:
 
             g_up.labels(shard).set(1)
             if last_up.get(shard, True) is False:
-                notify(f"MESH RECOVERED - shard: {shard}")
+                notify(f":large_green_circle: MESH RECOVERED - shard: {shard}")
             last_up[shard] = True
             g_failed.labels(shard).set(failed)
             g_skipped.labels(shard).set(skipped)
@@ -132,7 +133,7 @@ def check_once() -> None:
             prev = last_failed.get(shard, 0)
             if failed > 0 and failed != prev:
                 detail = results_error(shard)
-                msg = (f"RECONCILIATION FAILURE - shard: {shard}\n"
+                msg = (f":red_circle: RECONCILIATION FAILURE - shard: {shard}\n"
                        f"failed: {failed}, skipped: {skipped}, coverage: {coverage:.4f}, lag: {lag}, queue: {queue}")
                 notify(msg + (f"\nresults:\n{detail}" if detail else ""))
             last_failed[shard] = failed
@@ -147,7 +148,7 @@ def check_once() -> None:
             g_up.labels(shard).set(0)
             if last_up.get(shard, True):
                 detail = results_error(shard)
-                msg = (f"MESH DOWN - shard: {shard}\n"
+                msg = (f":red_circle: MESH DOWN - shard: {shard}\n"
                        f"err: {e}")
                 notify(msg + (f"\nresults:\n{detail}" if detail else ""))
             last_up[shard] = False
